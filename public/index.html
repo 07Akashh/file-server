@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload and Access</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Reset and Basic Styling */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #f4f7fa, #eaeef5);
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: #fff;
+            max-width: 500px;
+            width: 100%;
+            padding: 30px 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .container:hover {
+            transform: scale(1.02);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            font-size: 26px;
+            color: #333;
+        }
+
+        form {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-upload-label {
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .file-upload-label:hover {
+            background-color: #0056b3;
+        }
+
+        .file-upload-label i {
+            margin-right: 5px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        h3 {
+            font-size: 22px;
+            color: #333;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .file-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .file-list li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .file-list li:hover {
+            background-color: #f8f9fa;
+        }
+
+        .file-link {
+            color: #007bff;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .file-link:hover {
+            color: #0056b3;
+        }
+
+        .file-delete {
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .file-delete:hover {
+            color: #c82333;
+        }
+
+        .notification {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 14px;
+            display: none;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>File Upload and Access</h2>
+        <form id="uploadForm">
+            <label for="fileInput" class="file-upload-label"><i class="fas fa-upload"></i>Choose File</label>
+            <input type="file" id="fileInput" required>
+            <button type="submit"><i class="fas fa-cloud-upload-alt"></i> Upload</button>
+        </form>
+        <div class="notification" id="notification"></div>
+        <h3>Uploaded Files</h3>
+        <ul id="fileList" class="file-list"></ul>
+    </div>
+
+    <script>
+        // Display notification messages
+        function showNotification(message, isSuccess = true) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.backgroundColor = isSuccess ? '#d4edda' : '#f8d7da';
+            notification.style.color = isSuccess ? '#155724' : '#721c24';
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        // Upload file
+        document.getElementById('uploadForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const fileInput = document.getElementById('fileInput');
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+                if (response.ok) {
+                    showNotification('File uploaded successfully!');
+                    loadFiles();
+                    fileInput.value = ''; // Clear file input
+                } else {
+                    showNotification('File upload failed.', false);
+                }
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                showNotification('Error uploading file.', false);
+            }
+        });
+
+        // Load files and display them
+        async function loadFiles() {
+            try {
+                const response = await fetch('/files');
+                const files = await response.json();
+                const fileList = document.getElementById('fileList');
+                fileList.innerHTML = '';
+                files.forEach((file) => {
+                    const listItem = document.createElement('li');
+                    const link = document.createElement('a');
+                    link.href = `/files/${file}`;
+                    link.textContent = file;
+                    link.target = '_blank';
+                    link.className = 'file-link';
+                    listItem.appendChild(link);
+
+                    const deleteButton = document.createElement('span');
+                    deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                    deleteButton.className = 'file-delete';
+                    deleteButton.onclick = async () => {
+                        await deleteFile(file);
+                    };
+                    listItem.appendChild(deleteButton);
+
+                    fileList.appendChild(listItem);
+                });
+            } catch (error) {
+                console.error('Error loading files:', error);
+            }
+        }
+
+        // Delete file
+        async function deleteFile(filename) {
+            try {
+                const response = await fetch(`/files/${filename}`, {
+                    method: 'DELETE',
+                });
+                if (response.ok) {
+                    showNotification('File deleted successfully!');
+                    loadFiles();
+                } else {
+                    showNotification('Failed to delete file.', false);
+                }
+            } catch (error) {
+                console.error('Error deleting file:', error);
+                showNotification('Error deleting file.', false);
+            }
+        }
+
+        // Load files on page load
+        loadFiles();
+    </script>
+</body>
+</html>
